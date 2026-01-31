@@ -1,5 +1,6 @@
 # NanoHash Invoice
 
+![NanoHash Logo](images/logo.png)
 
 ## Explanation
 
