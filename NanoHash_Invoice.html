@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NanoHash Invoice</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100'/><text x='50' y='75' font-size='70' text-anchor='middle' fill='white'>$</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Theme Toggle -->
+        <div class="theme-toggle-container">
+            <span class="mode-label">Mode</span>
+            <button class="btn-mode btn-mode-light" id="btnLight" onclick="setTheme('light')" title="Light Mode"></button>
+            <button class="btn-mode btn-mode-dark" id="btnDark" onclick="setTheme('dark')" title="Dark Mode"></button>
+        </div>
+
+        <!-- Header Card -->
+        <div class="card">
+            <div class="header">
+                <div>
+                    <h1>NanoHash Invoice</h1>
+                    <p class="invoice-num">Invoice #<span id="invoiceNumber">1001</span>
+                    <span class="security-badge">✓ Blockchain Verified | SHA-256</span>
+                    </p>
+                </div>
+                <div class="icon">$</div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Client Name</label>
+                    <input type="text" id="clientName" placeholder="Enter client name">
+                </div>
+                <div class="form-group">
+                    <label>Fiscal Field (Optional)</label>
+                    <input type="text" id="fiscalField" placeholder="Tax ID or registration number">
+                </div>
+                <div class="form-group">
+                    <label>Currency</label>
+                    <select id="currency">
+                        <option value="USD">Dollar (USD) - $</option>
+                        <option value="EUR">Euro (EUR) - €</option>
+                        <option value="BOB">Boliviano (BOB) - Bs</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tax Rate (%)</label>
+                    <input type="number" id="taxRate" placeholder="13" value="13" min="0" max="100" step="0.01">
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Items Card -->
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Add Items</h2>
+            
+            <div class="form-grid">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Item Name *</label>
+                    <input type="text" id="itemName" placeholder="Description of item/service">
+                    <span class="error-msg" id="nameError"></span>
+                </div>
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" id="itemQuantity" placeholder="1" min="0.01" step="0.01">
+                    <span class="error-msg" id="quantityError"></span>
+                </div>
+                <div class="form-group">
+                    <label>Unit Price ($) *</label>
+                    <input type="number" id="itemPrice" placeholder="0.00" min="0.01" step="0.01">
+                    <span class="error-msg" id="priceError"></span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="addItem()">
+                <svg class="icon-add" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Add Item
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div class="card" id="emptyState">
+            <div class="empty-state">
+                <div class="icon">$</div>
+                <h3 style="margin-bottom: 10px;">No items added yet</h3>
+                <p>Add items above to start building your invoice</p>
+            </div>
+        </div>
+
+        <!-- Items Table Card -->
+        <div class="card" id="itemsCard" style="display: none;">
+            <h2 style="margin-bottom: 20px;">Invoice Items</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th style="text-align: center;">Quantity</th>
+                            <th style="text-align: right;">Unit Price</th>
+                            <th style="text-align: right;">Subtotal</th>
+                            <th style="text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="card" id="summaryCard" style="display: none;">
+            <h2 style="margin-bottom: 20px;">Invoice Summary</h2>
+            
+            <div class="summary">
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span id="subtotalAmount">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Tax (<span id="taxRateDisplay">13</span>%):</span>
+                    <span id="taxAmount">$0.00</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total (USD):</span>
+                    <span id="totalAmount">$0.00</span>
+                </div>
+                <div class="summary-row total" style="color: #27ae60; background: #d5f4e6; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <span>Total (<span id="selectedCurrency">USD</span>):</span>
+                    <span id="convertedAmount">$0.00</span>
+                </div>
+            </div>
+
+            <div class="exchange-info">
+                <strong>Exchange rates (fixed):</strong>
+                1 USD = 1.00 USD &nbsp;|&nbsp; 1 USD = 0.92 EUR &nbsp;|&nbsp; 1 USD = 6.91 BOB
+            </div>
+
+            <button class="btn btn-success" onclick="generatePDF()">
+                <svg class="icon-download" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 11V3M8 11L5 8M8 11L11 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 13H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Download Invoice PDF
+            </button>
+
+            <!-- QR Code Section -->
+            <div class="qr-section" id="qrSection" style="display: none;">
+                <h3>Blockchain Verification Code</h3>
+                <div id="qrcode"></div>
+                <p style="font-size: 13px; color: #666; margin-top: 10px;">Scan to verify invoice authenticity</p>
+                <div class="hash-display">
+                    <strong>SHA-256 Hash:</strong><br>
+                    <span id="hashDisplay"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice History Card -->
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Invoice History</h2>
+            <div style="display: flex; justify-content: flex-end;">
+                <button class="btn btn-primary btn-small-history" onclick="showHistory()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 2V8L11 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M13.5 8C13.5 11.0376 11.0376 13.5 8 13.5C4.96243 13.5 2.5 11.0376 2.5 8C2.5 4.96243 4.96243 2.5 8 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    View Invoice History
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeHistory()">&times;</span>
+            <h2>Invoice History</h2>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
